@@ -1,21 +1,34 @@
 import glob
 import numpy as np
+import time
+from collections import defaultdict
 
-def happy_check(INGR, CST:int, likes, dislikes):
+def happy_check(INGR):
     happy_cst = 0
-    for cst in range(CST):
-        happy_cst = happy_cst + 1 if set(likes[cst]).issubset(INGR) and not(set(dislikes[cst]).issubset(INGR)) else happy_cst - 1
+    for cst in range(AMT):
+        happy_cst = happy_cst + 1 if set(l1np[cst]).issubset(INGR) and not(set(l2np[cst]).issubset(INGR)) else happy_cst - 1
     return happy_cst
 
+def make_tuple(ingr):
+    try:
+        INGR.remove(ingr)
+        ratio = happy_check(INGR)
+        INGR.add(ingr)
+    except:
+        ratio = -1000000
+    return ratio,ingr
 
 def process(file:str):
     with open(file,"r") as fl:
         data = fl.readlines()
         pass
     NAME = file.split(".")[0]
+    print(f"\nstarting: {NAME}")
+
+    global AMT
     AMT = int(data[0])
 
-    dat = data[-(AMT * 2):]
+    dat = data[1:]
     l1 = dat[::2]
     l2 = dat[1::2]
 
@@ -26,41 +39,42 @@ def process(file:str):
         if l1[i][0].isnumeric(): l1[i].pop(0)
         if l2[i][0].isnumeric(): l2[i].pop(0)
 
-    flat_l1 = sum(l1, [])
-    flat_l2 = sum(l2, [])
 
-    d_d = set(flat_l2)
-    l = set(flat_l1)
+    d_d = set(sum(l2, []))
+    amt_d = len(d_d)
+    l = set(sum(l1, []))
 
+    global INGR
     INGR = d_d.union(l)
 
-    l1np = np.array(l1)
-    l2np = np.array(l2)
+    global l1np
+    l1np = np.array(l1,dtype=object)
+    global l2np
+    l2np = np.array(l2,dtype=object)
 
-    temp_d_d = d_d
-    min_rat = happy_check(INGR,AMT,l1np,l2np)
-    for i in range(len(d_d)):
-        perf = []
-        for ingr in temp_d_d:
-            temp_ing = INGR
-            temp_ing.remove(ingr)
-            ratio = happy_check(temp_ing,AMT,l1np,l2np)
-            temp_ing.add(ingr)
-            perf.append((ratio,ingr))
+    min_rat = happy_check(INGR)
+    perf = list(map(make_tuple, d_d))
+    lenp = len(perf)
+    perf.sort(reverse=True)
+    for i in range(lenp):
+        x = time.perf_counter()
+        min_v = perf[i][0]
+        check = [y for (x, y) in perf[i:] if x == min_v]
+        a_perf = list(map(make_tuple, check))
+        a_perf.sort(reverse=True)
+        if a_perf[0][0] >= min_rat:
+            INGR.remove(a_perf[0][1])
+            min_rat = a_perf[0][0]
 
-        perf.sort(reverse=True)
-        if perf[0][0] >= min_rat:
-            INGR.remove(perf[0][1])
-            temp_d_d.remove(perf[0][1])
-            min_rat = perf[0][0]
+        t = time.perf_counter()-x
+        print(f"{len(perf)-i} iterations left | took: {t}sec")
 
     with open(f"{NAME}.out.txt", "w") as file:
         file.write(f'{len(INGR)} {" ".join(INGR)}')
         pass
 
-
 myFiles = glob.glob('*.in.txt')
-#myFiles = "a_an_example.in.txt"
+#myFiles = "e_elaborate.in.txt"
 #process(myFiles)
 for file in myFiles:
     process(file)
